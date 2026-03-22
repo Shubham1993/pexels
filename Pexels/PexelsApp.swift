@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct PexelsApp: App {
+    private let container = AppContainer()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView(viewModel: container.makeHomeViewModel())
         }
     }
 }
