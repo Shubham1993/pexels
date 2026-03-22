@@ -9,7 +9,7 @@ import Foundation
 
 final class AppContainer {
     lazy var apiClient: APIClient = APIClientImpl(
-        baseURL: "https://api.pexels.com"
+        baseURL: URL(string: "https://api.pexels.com")!
     )
 
     lazy var remoteDataSource: VideoRemoteDataSource = VideoRemoteDataSourceImpl(

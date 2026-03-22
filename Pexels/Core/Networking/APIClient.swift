@@ -13,11 +13,11 @@ protocol APIClient {
 
 
 final class APIClientImpl: APIClient {
-    private let baseURL: String
+    private let baseURL: URL
     private let session: URLSession
 
     init(
-        baseURL: String,
+        baseURL: URL,
         session: URLSession = URLSession.shared
     ) {
         self.baseURL = baseURL
@@ -25,19 +25,30 @@ final class APIClientImpl: APIClient {
     }
     
     func request<T>(_ endpoint: Endpoint, responseType: T.Type) async throws -> T where T : Decodable {
-        guard let url = URL(string: baseURL + endpoint.path) else {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent(endpoint.path),
+            resolvingAgainstBaseURL: false
+        )
+
+        components?.queryItems = endpoint.queryItems
+
+        guard let url = components?.url else {
             throw APIError.invalidURL
         }
         
-        print("Decoding type:", T.self)
         var req = URLRequest(url: url)
         req.httpMethod = endpoint.method.rawValue
+        req.timeoutInterval = 30
         
         do {
             let (data, resp) = try await self.session.data(for: req)
             
             guard let httpResponse = resp as? HTTPURLResponse else {
                 throw APIError.invalidResponse
+            }
+            
+            if httpResponse.statusCode == 429 {
+                throw APIError.rateLimitReached
             }
             
             guard 200..<300 ~= httpResponse.statusCode else {
@@ -56,7 +67,7 @@ final class APIClientImpl: APIClient {
         } catch let error as APIError {
             throw error
         } catch {
-            throw APIError.unknown(error)
+            throw APIError.network(error)
         }
     }
 }

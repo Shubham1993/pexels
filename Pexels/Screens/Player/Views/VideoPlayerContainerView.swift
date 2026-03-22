@@ -8,20 +8,11 @@
 import SwiftUI
 import AVKit
 
-struct VideoPlayerContainerView: UIViewControllerRepresentable {
+struct VideoPlayerContainerView: View {
     let player: AVPlayer
-    @Binding var isFullscreen: Bool
 
-    func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.showsPlaybackControls = true
-        controller.entersFullScreenWhenPlaybackBegins = false
-        controller.exitsFullScreenWhenPlaybackEnds = false
-        return controller
-    }
-
-    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
-        controller.player = player
+    var body: some View {
+        VideoPlayer(player: player)
+            .background(Color.black)
     }
 }

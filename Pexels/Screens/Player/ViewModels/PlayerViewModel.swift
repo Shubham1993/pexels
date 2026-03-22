@@ -14,7 +14,7 @@ final class PlayerViewModel: ObservableObject {
     @Published private(set) var upNextVideos: [VideoItem]
 
     let player = AVPlayer()
-
+    private var isActive = true
     private var queue: [VideoItem]
     private var currentIndex: Int
     private var playbackObserver: NSObjectProtocol?
@@ -24,15 +24,11 @@ final class PlayerViewModel: ObservableObject {
         self.queue = queue
         self.currentIndex = currentIndex
         self.upNextVideos = Array(queue.dropFirst(currentIndex + 1))
-
-        configurePlayer(for: currentVideo)
-        observePlaybackEnd()
     }
     
-    deinit {
-        if let playbackObserver {
-            NotificationCenter.default.removeObserver(playbackObserver)
-        }
+    func startPlayback() {
+        isActive = true
+        configurePlayer(for: currentVideo)
     }
 
     func play(video: VideoItem) {
@@ -40,35 +36,58 @@ final class PlayerViewModel: ObservableObject {
         currentIndex = index
         currentVideo = video
         upNextVideos = Array(queue.dropFirst(currentIndex + 1))
-        configurePlayer(for: video)
-    }
-
-    func playNextIfAvailable() {
-        let nextIndex = currentIndex + 1
-        guard queue.indices.contains(nextIndex) else { return }
-        let nextVideo = queue[nextIndex]
-        play(video: nextVideo)
+        isActive = true
+        configurePlayer(for: currentVideo)
     }
 
     func stopPlayback() {
+        isActive = false
         player.pause()
         player.replaceCurrentItem(with: nil)
+
+        if let playbackObserver {
+            NotificationCenter.default.removeObserver(playbackObserver)
+            self.playbackObserver = nil
+        }
     }
 
     private func configurePlayer(for video: VideoItem) {
         guard let url = video.playbackURL else { return }
+
+        player.pause()
+
         let item = AVPlayerItem(url: url)
         player.replaceCurrentItem(with: item)
+
+        observePlaybackEnd(for: item)
         player.play()
     }
 
-    private func observePlaybackEnd() {
+    private func observePlaybackEnd(for item: AVPlayerItem) {
+        if let playbackObserver {
+            NotificationCenter.default.removeObserver(playbackObserver)
+            self.playbackObserver = nil
+        }
+
         playbackObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
-            object: nil,
+            object: item,
             queue: .main
         ) { [weak self] _ in
-            self?.playNextIfAvailable()
+            guard let self = self, self.isActive else { return }
+            self.playNextIfAvailable()
+        }
+    }
+
+    private func playNextIfAvailable() {
+        let nextIndex = currentIndex + 1
+        guard queue.indices.contains(nextIndex) else { return }
+        play(video: queue[nextIndex])
+    }
+
+    deinit {
+        if let playbackObserver {
+            NotificationCenter.default.removeObserver(playbackObserver)
         }
     }
 }

@@ -10,30 +10,33 @@ import AVKit
 
 struct PlayerView: View {
     @StateObject private var viewModel: PlayerViewModel
-    @State private var showFullScreen = false
+    @State private var showFullScreenPlayer = false
 
-    init(viewModel: PlayerViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+    init(currentVideo: VideoItem, queue: [VideoItem], currentIndex: Int) {
+        _viewModel = StateObject(
+           wrappedValue: PlayerViewModel(
+               currentVideo: currentVideo,
+               queue: queue,
+               currentIndex: currentIndex
+           )
+       )
     }
 
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .topTrailing) {
-                VideoPlayerContainerView(
-                    player: viewModel.player,
-                    isFullscreen: .constant(false)
-                )
-                .frame(height: 320)
-                .background(Color.black)
+                VideoPlayerContainerView(player: viewModel.player)
+                    .frame(height: 320)
+                    .background(Color.black)
 
                 Button {
-                    showFullScreen = true
+                    showFullScreenPlayer = true
                 } label: {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.white)
                         .padding(10)
-                        .background(Color.black.opacity(0.6))
+                        .background(Color.black.opacity(0.65))
                         .clipShape(Circle())
                 }
                 .padding(12)
@@ -70,11 +73,14 @@ struct PlayerView: View {
         }
         .navigationTitle("Player")
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showFullScreen) {
-            FullScreenPlayerView(player: viewModel.player)
+        .onAppear {
+            viewModel.startPlayback()
         }
         .onDisappear {
             viewModel.stopPlayback()
+        }
+        .fullScreenCover(isPresented: $showFullScreenPlayer) {
+            FullScreenPlayerView(player: viewModel.player)
         }
     }
 }

@@ -33,10 +33,10 @@ struct VideoDTO: Decodable {
     func toDomain() -> VideoItem? {
         let urls = videoFiles.compactMap { URL(string: $0.link) }
         let selected = VideoFileSelector.bestURL(from: videoFiles)
-
+        let title = user?.name ?? "Video \(id)"
         return VideoItem(
             id: id,
-            title: "Video \(id)",
+            title: title,
             thumbnailURL: URL(string: image!),
             videographerName: user!.name,
             duration: duration,

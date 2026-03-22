@@ -16,14 +16,14 @@ struct FullScreenPlayerView: View {
         ZStack(alignment: .topTrailing) {
             Color.black.ignoresSafeArea()
 
-            VideoPlayerContainerView(player: player, isFullscreen: .constant(true))
+            VideoPlayerContainerView(player: player)
                 .ignoresSafeArea()
 
             Button {
                 dismiss()
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 28))
+                    .font(.system(size: 30))
                     .foregroundColor(.white)
                     .padding()
             }

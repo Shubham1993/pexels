@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 @MainActor
 final class HomeViewModel: ObservableObject {
@@ -18,17 +19,54 @@ final class HomeViewModel: ObservableObject {
 
     private(set) var currentPage = 1
     private let perPage = 15
-    private var hasMore = true
+    private var hasMore: Bool = true
     private var hasLoadedInitially = false
 
     init(fetchPopularVideosUseCase: FetchPopularVideosUseCase) {
         self.fetchPopularVideosUseCase = fetchPopularVideosUseCase
+    }
+    
+    func loadMore() async {
+        guard hasMore else { return }
+        guard !isLoading else { return }
+        guard !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        do {
+            let result = try await fetchPopularVideosUseCase.execute(
+                page: currentPage,
+                perPage: perPage
+            )
+            guard !result.videos.isEmpty else {
+                hasMore = false
+                return
+            }
+            
+            let newVideos = result.videos
+            
+            await MainActor.run {
+                withAnimation(.none) {
+                    videos.append(contentsOf: newVideos)
+                }
+            }
+           
+            hasMore = result.hasMore
+            currentPage += 1
+
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func loadInitialIfNeeded() async {
         guard !hasLoadedInitially else { return }
         hasLoadedInitially = true
         await refresh()
+    }
+    
+    func clearError() {
+        errorMessage = nil
     }
 
     func refresh() async {
@@ -47,25 +85,5 @@ final class HomeViewModel: ObservableObject {
         }
 
         isLoading = false
-    }
-
-    func loadMoreIfNeeded(currentItem: VideoItem) async {
-        guard let last = videos.last else { return }
-        guard currentItem.id == last.id else { return }
-        guard hasMore else { return }
-        guard !isLoadingMore else { return }
-        guard !isLoading else { return }
-
-        isLoadingMore = true
-        defer { isLoadingMore = false }
-
-        do {
-            let result = try await fetchPopularVideosUseCase.execute(page: currentPage, perPage: perPage)
-            videos.append(contentsOf: result.videos)
-            hasMore = result.hasMore
-            currentPage += 1
-        } catch {
-            errorMessage = error.localizedDescription
-        }
     }
 }
